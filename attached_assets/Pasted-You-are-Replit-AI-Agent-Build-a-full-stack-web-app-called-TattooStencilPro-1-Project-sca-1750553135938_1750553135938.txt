@@ -1,0 +1,88 @@
+You are Replit AI Agent. Build a full-stack web app called “TattooStencilPro”.
+
+### 1. Project scaffolding
+- Template: **Next.js 14 + TypeScript + Tailwind**.
+- Monorepo style: `/app` (frontend) and `/server` (API routes if needed).
+- Use **Prisma** as ORM and generate types automatically.
+
+### 2. Environment & services
+- **PostgreSQL** via Replit SQL (Neon) → `.env` → `DATABASE_URL`.
+- **Replit Object Storage** for large images (upload + signed URLs).
+- **Supabase Auth** (email magic link + Google OAuth).
+- **Stripe Billing** (test mode):
+  1. Pro Monthly — 200 credits
+  2. Top-up — 100 credits
+  Webhook `/api/stripe/webhook` increments `users.credits`.
+- **OpenAI GPT-4o Vision** for image analysis & prompt crafting.
+- **Replicate API** → model `black-forest-labs/flux-kontext-pro` for image generation.
+- **PostHog** analytics (DAU, image_generated, credit_purchase).
+
+### 3. Data models (Prisma)
+model User {
+  id               String   @id @default(uuid())
+  email            String   @unique
+  credits          Int      @default(10)
+  stripeCustomerId String?
+  images           Image[]
+  createdAt        DateTime @default(now())
+}
+
+model Image {
+  id        String   @id @default(uuid())
+  ownerId   String
+  gcsUrl    String
+  meta      Json?
+  edits     Edit[]
+  createdAt DateTime @default(now())
+  User      User     @relation(fields: [ownerId], references: [id])
+}
+
+model Edit {
+  id          String   @id @default(uuid())
+  baseImageId String
+  newGcsUrl   String
+  diffPrompt  Json
+  creditCost  Int
+  createdAt   DateTime @default(now())
+  Image       Image    @relation(fields: [baseImageId], references: [id])
+}
+
+### 4. API routes
+- `POST /api/upload`  
+  *Receives file → stores in Object Storage → returns signed URL.*
+- `POST /api/assistant`  
+  *Body:* `{ imageUrl?: string, userMessage: string }`  
+  1. Streams request to **GPT-4o Vision** (with image if provided).  
+  2. Returns streaming responses (SSE) to frontend.
+- `POST /api/edit`  
+  *Body:* `{ imageUrl, assistantPrompt }` →  
+  1. Checks credits.  
+  2. Calls Replicate with `assistantPrompt`.  
+  3. Saves result in `edits`, decrements credits.
+
+### 5. Front-end pages & components
+- `/login` – Supabase auth.
+- `/dashboard` – credits left, recent images (thumbnails).
+- `/editor` – split layout:  
+  **Left:** Upload/pick image + sidebar “Pose / Lighting / Style”.  
+  **Right:** “AI Assistant” chat panel (streaming bubbles).  
+  *Workflow:* User asks → assistant refines prompt → “Generate” → grid of variations.
+- Responsive luxury look: black-white minimalist, subtle gold accents, rounded-2xl cards, smooth framer-motion transitions.
+
+### 6. State & utils
+- React Context (`AuthContext`, `CreditContext`, `AssistantContext`).
+- SWR/React-Query for `/api` calls.
+- Custom hook `useAssistantStream` (EventSource) to render streaming chat.
+- Toast notifications for low credits & errors.
+
+### 7. Analytics
+- Add PostHog snippet (`NEXT_PUBLIC_POSTHOG_KEY`).
+- Track `assistant_message`, `image_generated`, `credit_purchase`.
+
+### 8. README
+Include:
+- Setup & env vars.
+- How to start Supabase local and Stripe CLI.
+- Command list (`dev`, `migrate`, `lint`, `format`).
+
+Generate all code, migrations, example `.env.example`, and a TODO checklist at the end. Run `npx prisma migrate dev` automatically.

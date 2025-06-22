@@ -1,0 +1,75 @@
+You are Replit AI Agent. Build a full-stack web app called “TattooStencilPro”.
+
+### 1. Project scaffolding
+- Template: **Next.js 14 + TypeScript + Tailwind**.
+- Monorepo style: `/app` (frontend) and `/server` (API routes if needed).
+- Use **Prisma** as ORM and generate types automatically.
+
+### 2. Environment & services
+- **PostgreSQL** via Replit SQL (Neon) → configure in `.env` as DATABASE_URL.
+- **Replit Object Storage** for large images → helper util to upload & return signed URLs.
+- **Supabase Auth** (email magic link + Google OAuth). Store user id as `uuid`.
+- **Stripe Billing** (test mode) with two products:
+  1. Pro Monthly — 200 credits
+  2. Top-up — 100 credits
+  Webhook `/api/stripe/webhook` should increase `users.credits`.
+- **OpenAI GPT-4o Vision** for image analysis & prompt creation.
+- **Replicate API** → model `black-forest-labs/flux-kontext-pro` for image generation.
+
+### 3. Data models (Prisma)
+model User {
+  id               String   @id @default(uuid())
+  email            String   @unique
+  credits          Int      @default(10)
+  stripeCustomerId String?
+  images           Image[]
+  createdAt        DateTime @default(now())
+}
+
+model Image {
+  id        String   @id @default(uuid())
+  ownerId   String
+  gcsUrl    String
+  meta      Json?
+  edits     Edit[]
+  createdAt DateTime @default(now())
+  User      User     @relation(fields: [ownerId], references: [id])
+}
+
+model Edit {
+  id          String   @id @default(uuid())
+  baseImageId String
+  newGcsUrl   String
+  diffPrompt  Json
+  creditCost  Int
+  createdAt   DateTime @default(now())
+  Image       Image    @relation(fields: [baseImageId], references: [id])
+}
+
+### 4. API routes
+- `POST /api/upload` – receives file, saves to Object Storage, returns signed URL.
+- `POST /api/edit` – body: {imageUrl, userPrompt}; steps:
+  1. Validate credits ≥ cost.
+  2. Call GPT-4o Vision to refine prompt.
+  3. Call Replicate model with refined prompt.
+  4. Store result (Image/Edit) and decrement credits.
+  5. Return generated image URL.
+
+### 5. Front-end pages
+- `/login` – Supabase auth.
+- `/dashboard` – show credits left, recent images (thumbnails).
+- `/editor` – upload or pick image → sidebar with “Pose / Lighting / Style” inputs → Generate button → grid of variations.
+- Responsive, luxury look: black-white minimalist, subtle gold accents, rounded-2xl cards.
+
+### 6. State & utils
+- React Context for auth + credits.
+- `useMutation` hooks (React Query) for API calls.
+- Loading spinners & Toast notifications.
+
+### 7. Analytics
+- Integrate **PostHog** via env var POSTHOG_KEY, track `image_generated` and `credit_purchase`.
+
+### 8. README
+Add setup instructions, env vars list, and how to run Stripe CLI for webhooks.
+
+Generate all code, migrations, and example `.env.example`. Run `npx prisma migrate dev` automatically. Provide a short TODO list at the end for me to follow.
