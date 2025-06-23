@@ -5,6 +5,7 @@ import { storage } from "./storage";
 import { upload, saveUploadedFile, getImageDimensions, convertToBase64 } from "./services/upload";
 import { analyzeImageForTattoo, streamChatResponse, createTattooPrompt } from "./services/openai";
 import { generateTattooStencil } from "./services/replicate";
+import { nanoid } from "nanoid";
 import Stripe from "stripe";
 import express from "express";
 import path from "path";
@@ -52,6 +53,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Create image record
       const image = await storage.createImage({
+        id: nanoid(),
         ownerId: userId,
         url: fileData.url,
         filename: fileData.filename,
@@ -85,8 +87,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Message is required" });
       }
 
+      // Check if OpenAI API key is properly configured
+      if (!process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY.startsWith('r8_')) {
+        return res.status(503).json({ 
+          message: "AI chat service requires OpenAI API key configuration",
+          error: "service_unavailable"
+        });
+      }
+
       // Save user message
       await storage.createChatMessage({
+        id: nanoid(),
         userId,
         imageId: imageId || null,
         role: 'user',
@@ -149,6 +160,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Save assistant response
         if (assistantResponse) {
           await storage.createChatMessage({
+            id: nanoid(),
             userId,
             imageId: imageId || null,
             role: 'assistant',

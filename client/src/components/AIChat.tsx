@@ -68,12 +68,14 @@ export default function AIChat({ imageId, onPromptChange }: AIChatProps) {
       console.error('Chat error:', error);
       let errorMessage = "Failed to get response from AI assistant";
       
-      if (error.message?.includes('401') || error.message?.includes('invalid_api_key')) {
-        errorMessage = "AI service requires proper API key configuration";
+      if (error.message?.includes('503') || error.message?.includes('service_unavailable')) {
+        errorMessage = "El chat de IA requiere configuración de clave API de OpenAI";
+      } else if (error.message?.includes('401') || error.message?.includes('invalid_api_key')) {
+        errorMessage = "Clave API de OpenAI inválida o no configurada";
       } else if (error.message?.includes('429')) {
-        errorMessage = "Too many requests. Please wait a moment and try again";
+        errorMessage = "Demasiadas solicitudes. Espera un momento e intenta de nuevo";
       } else if (error.message?.includes('500')) {
-        errorMessage = "Server error. Please try again in a moment";
+        errorMessage = "Error del servidor. Intenta de nuevo en un momento";
       }
       
       toast({
