@@ -64,10 +64,21 @@ export default function AIChat({ imageId, onPromptChange }: AIChatProps) {
 
     try {
       await streamResponse(userMessage, imageId || undefined);
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Chat error:', error);
+      let errorMessage = "Failed to get response from AI assistant";
+      
+      if (error.message?.includes('401') || error.message?.includes('invalid_api_key')) {
+        errorMessage = "AI service requires proper API key configuration";
+      } else if (error.message?.includes('429')) {
+        errorMessage = "Too many requests. Please wait a moment and try again";
+      } else if (error.message?.includes('500')) {
+        errorMessage = "Server error. Please try again in a moment";
+      }
+      
       toast({
-        title: "Error",
-        description: "Failed to get response from AI assistant",
+        title: "Chat Error",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

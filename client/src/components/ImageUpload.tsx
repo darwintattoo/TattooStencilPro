@@ -59,10 +59,23 @@ export default function ImageUpload({ onImageUploaded }: ImageUploadProps) {
       });
       setTimeout(() => setUploadProgress(0), 1000);
     },
-    onError: (error) => {
+    onError: (error: any) => {
+      console.error('Upload error:', error);
+      let errorMessage = "Failed to upload image";
+      
+      if (error.message?.includes('401') || error.message?.includes('Unauthorized')) {
+        errorMessage = "Please log in to upload images";
+      } else if (error.message?.includes('413')) {
+        errorMessage = "File too large. Maximum size is 10MB";
+      } else if (error.message?.includes('415')) {
+        errorMessage = "Invalid file type. Please use JPEG, PNG, or WebP";
+      } else if (error.message?.includes('400')) {
+        errorMessage = "Invalid file. Please select a valid image";
+      }
+      
       toast({
-        title: "Upload failed",
-        description: error.message,
+        title: "Upload Failed",
+        description: errorMessage,
         variant: "destructive",
       });
       setUploadProgress(0);
