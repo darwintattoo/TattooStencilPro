@@ -244,6 +244,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Create edit record
       const edit = await storage.createEdit({
+        id: nanoid(),
         baseImageId: imageId || '',
         resultUrl,
         prompt,
