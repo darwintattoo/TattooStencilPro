@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import Header from "@/components/Header";
@@ -7,10 +7,20 @@ import AIChat from "@/components/AIChat";
 import AdvancedSettings from "@/components/AdvancedSettings";
 import GenerateButton from "@/components/GenerateButton";
 import RecentGenerations from "@/components/RecentGenerations";
+import { GenerationSettings } from "@/components/AdvancedSettings";
 
 export default function Editor() {
   const { toast } = useToast();
   const { isAuthenticated, isLoading } = useAuth();
+  const [uploadedImageId, setUploadedImageId] = useState<string | null>(null);
+  const [chatPrompt, setChatPrompt] = useState<string>("");
+  const [settings, setSettings] = useState<GenerationSettings>({
+    style: "traditional",
+    lineWeight: "medium",
+    guidanceScale: 7.5,
+    steps: 30,
+    aspectRatio: "4:3"
+  });
 
   // Redirect to home if not authenticated
   useEffect(() => {
@@ -26,6 +36,19 @@ export default function Editor() {
       return;
     }
   }, [isAuthenticated, isLoading, toast]);
+
+  const handleImageUploaded = (imageData: any) => {
+    setUploadedImageId(imageData.id);
+  };
+
+  const handleChatPromptChange = (prompt: string) => {
+    setChatPrompt(prompt);
+  };
+
+  const handleGenerated = (result: any) => {
+    // Handle successful generation
+    console.log("Generated:", result);
+  };
 
   if (isLoading) {
     return (
@@ -50,17 +73,28 @@ export default function Editor() {
           <p className="text-slate-400">Powered by FLUX Kontext PRO AI</p>
         </div>
 
-        {/* Image Upload Section */}
-        <ImageUpload />
+        {/* Image Upload Section - Always at top */}
+        <ImageUpload onImageUploaded={handleImageUploaded} />
 
-        {/* AI Assistant Chat */}
-        <AIChat />
+        {/* AI Assistant Chat - Always visible directly below image upload */}
+        <AIChat 
+          imageId={uploadedImageId} 
+          onPromptChange={handleChatPromptChange}
+        />
 
         {/* Advanced Settings */}
-        <AdvancedSettings />
+        <AdvancedSettings 
+          settings={settings}
+          onSettingsChange={setSettings}
+        />
 
         {/* Generate Button */}
-        <GenerateButton />
+        <GenerateButton 
+          prompt={chatPrompt}
+          imageId={uploadedImageId || undefined}
+          settings={settings}
+          onGenerated={handleGenerated}
+        />
 
         {/* Recent Generations */}
         <RecentGenerations />

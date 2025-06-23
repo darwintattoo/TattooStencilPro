@@ -17,7 +17,11 @@ interface UploadedImage {
   height: number;
 }
 
-export default function ImageUpload() {
+interface ImageUploadProps {
+  onImageUploaded?: (imageData: UploadedImage) => void;
+}
+
+export default function ImageUpload({ onImageUploaded }: ImageUploadProps) {
   const [uploadedImage, setUploadedImage] = useState<UploadedImage | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const { toast } = useToast();
@@ -48,6 +52,7 @@ export default function ImageUpload() {
     onSuccess: (data) => {
       setUploadedImage(data);
       queryClient.invalidateQueries({ queryKey: ['/api/images'] });
+      onImageUploaded?.(data);
       toast({
         title: "Image uploaded successfully",
         description: "Your reference image is ready for analysis.",

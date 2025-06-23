@@ -15,7 +15,12 @@ interface Message {
   timestamp: Date;
 }
 
-export default function AIChat() {
+interface AIChatProps {
+  imageId?: string | null;
+  onPromptChange?: (prompt: string) => void;
+}
+
+export default function AIChat({ imageId, onPromptChange }: AIChatProps) {
   const [message, setMessage] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -29,6 +34,17 @@ export default function AIChat() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Extract the latest assistant message as prompt for generation
+  useEffect(() => {
+    const lastAssistantMessage = messages
+      .filter(msg => msg.role === 'assistant')
+      .pop();
+    
+    if (lastAssistantMessage && onPromptChange) {
+      onPromptChange(lastAssistantMessage.content);
+    }
+  }, [messages, onPromptChange]);
 
   const sendMessage = async () => {
     if (!message.trim() || isStreaming) return;
@@ -47,7 +63,7 @@ export default function AIChat() {
     setIsStreaming(true);
 
     try {
-      await streamResponse(userMessage);
+      await streamResponse(userMessage, imageId || undefined);
     } catch (error) {
       toast({
         title: "Error",
